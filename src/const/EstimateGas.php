@@ -1,6 +1,6 @@
 <?php
 
-namespace Ton\StonFi\const;
+namespace StonFi\const;
 use Brick\Math\BigInteger;
 abstract class EstimateGas
 {

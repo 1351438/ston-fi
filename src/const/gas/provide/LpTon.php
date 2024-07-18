@@ -1,7 +1,7 @@
 <?php
-namespace Ton\StonFi\const\gas\provide;
+namespace StonFi\const\gas\provide;
 use Olifanton\Interop\Units;
-use Ton\StonFi\const\EstimateGas;
+use StonFi\const\EstimateGas;
 
 class LpTon extends EstimateGas {
     public function __construct()

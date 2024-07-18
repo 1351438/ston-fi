@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Ton\StonFi\dex\api\v1;
+namespace StonFi\dex\api\v1;
 
-use Ton\StonFi\Enums\Methods;
-use Ton\StonFi\Init;
+use StonFi\Enums\Methods;
+use StonFi\Init;
 
 class Swap
 {

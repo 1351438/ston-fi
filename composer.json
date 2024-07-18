@@ -2,15 +2,15 @@
     "version": "1.0.0",
     "name": "mba/ston_fi",
     "description": "PHP Ston fi swap",
-    "homepage": "https://github.com/1351438/php-ston-fi",
+    "homepage": "https://github.com/1351438/ston-fi",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Ton\\StonFi\\": "src/"
+            "StonFi\\": "src/"
         },
         "files": [
-            "src/const/opcodes.php"
+            "src/const/OpCodes.php"
         ]
     },
     "require": {
@@ -23,7 +23,8 @@
         "psr/http-client-implementation": "^1.0",
         "psr/http-factory-implementation": "^1.0",
         "psr/log": "^1.0|^2.0|^3.0",
-        "psr/simple-cache": "^3.0"
+        "psr/simple-cache": "^3.0",
+        "ext-curl": "*"
     },
     "scripts": {
         "test:unit": "XDEBUG_MODE=coverage phpunit --testsuite unit",

@@ -1,16 +1,22 @@
 <?php
 declare(strict_types=1);
 
-namespace Ton\StonFi\dex\swap\v2;
+namespace StonFi\dex\swap\v2;
 
 use Brick\Math\BigInteger;
+use JetBrains\PhpStorm\ArrayShape;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
-use Ton\StonFi\const\gas\swap\JettonToJettonGas;
-use Ton\StonFi\dex\api\v1\Jetton;
-use Ton\StonFi\Init;
+use StonFi\const\gas\swap\JettonToJettonGas;
+use StonFi\const\gas\swap\JettonToTonGas;
+use StonFi\const\gas\swap\TonToJettonGas;
+use StonFi\const\OpCodes;
+use StonFi\dex\api\v1\Jetton;
+use StonFi\dex\common\CreateJettonTransferMessage;
+use StonFi\Init;
+use StonFi\pTON\v2\PtonV2;
 
 class Swap
 {
@@ -23,28 +29,34 @@ class Swap
 
     public function simulate($from, $to, $units, $slippageTolerance)
     {
-        $swap = new \Ton\StonFi\dex\api\v1\Swap($this->init);
+        $swap = new \StonFi\dex\api\v1\Swap($this->init);
         return $swap->swapSimulate($from, $to, $units, $slippageTolerance);
     }
 
-    public function JettonToJetton(
+    /**
+     * @throws \Olifanton\Interop\Boc\Exceptions\CellException
+     * @throws \Brick\Math\Exception\DivisionByZeroException
+     * @throws \Brick\Math\Exception\NumberFormatException
+     * @throws \Olifanton\Interop\Boc\Exceptions\BitStringException
+     */
+    public function JettonToJettonTxParams(
         Address $contractAddress,
         Address $userWalletAddress,
         Address $offerJettonAddress,
         Address $askJettonAddress,
-        $offerAmount,
-        $minAskAmount,
+                $offerAmount,
+                $minAskAmount,
         Address $refundAddress = null,
         Address $excessesAddress = null,
         Address $referralAddress = null,
-        $referralValue = null,
-        Cell $customPayload = null,
-        $customPayloadForwardGasAmount = null,
-        Cell $refundPayload = null,
-        $refundForwardGasAmount = null,
-        $gasAmount = null,
-        $forwardGasAmount = null,
-        $queryId = null
+                $referralValue = null,
+        Cell    $customPayload = null,
+                $customPayloadForwardGasAmount = null,
+        Cell    $refundPayload = null,
+                $refundForwardGasAmount = null,
+                $gasAmount = null,
+                $forwardGasAmount = null,
+                $queryId = null
     )
     {
         $jetton = new Jetton($this->init);
@@ -71,7 +83,7 @@ class Swap
             referralValue: $referralValue
         );
 
-        $body = $this->createJettonTransferMessage(
+        $body = CreateJettonTransferMessage::create(
             queryId: $queryId,
             amount: $offerAmount,
             destination: $contractAddress,
@@ -90,17 +102,107 @@ class Swap
     }
 
     public
-    function JettonToTon($from, $to, $units, $slippageTolerance)
+    function JettonToTonTxParams(
+        $contractAddress,
+        PtonV2 $proxyTon,
+        Address $userWalletAddress,
+        Address $offerJettonAddress,
+        BigInteger $offerAmount,
+        BigInteger $minAskAmount,
+        Address $refundAddress = null,
+        Address $excessAddress = null,
+        Address $referralAddress = null,
+        BigInteger $referralValue = null,
+        Cell $customPayload = null,
+        BigInteger $customPayloadForwardGasAmount = null,
+        Cell $refundPayload = null,
+        BigInteger $refundForwardGasAmount = null,
+        BigInteger $gasAmount = null,
+        BigInteger $forwardGasAmount = null,
+        $queryId = null
+    )
     {
-
+        return $this->JettonToJettonTxParams(
+            contractAddress: $contractAddress,
+            userWalletAddress: $userWalletAddress,
+            offerJettonAddress: $offerJettonAddress,
+            askJettonAddress: $proxyTon->address,
+            offerAmount: $offerAmount,
+            minAskAmount: $minAskAmount,
+            refundAddress: $refundAddress,
+            excessesAddress: $excessAddress,
+            referralAddress: $referralAddress,
+            referralValue: $referralValue,
+            customPayload: $customPayload,
+            customPayloadForwardGasAmount: $customPayloadForwardGasAmount,
+            refundPayload: $refundPayload,
+            refundForwardGasAmount: $refundForwardGasAmount,
+            gasAmount: $gasAmount ?? (new JettonToTonGas())->gasAmount,
+            forwardGasAmount: $forwardGasAmount ?? (new JettonToTonGas())->forwardGasAmount,
+            queryId: $queryId
+        );
     }
 
-    public
-    function TonToJetton($from, $to, $units, $slippageTolerance)
+    #[ArrayShape(["address" => "string", "payload" => "string", "value" => "\Brick\Math\BigInteger"])] public
+    function TonToJettonTxParams(
+        $contractAddress,
+        PtonV2 $proxyTon,
+        Address $userWalletAddress,
+        Address $askJettonAddress,
+        BigInteger $offerAmount,
+        BigInteger $minAskAmount,
+        Address $refundAddress = null,
+        Address $excessAddress = null,
+        Address $referralAddress = null,
+        BigInteger $referralValue = null,
+        Cell $customPayload = null,
+        BigInteger $customPayloadForwardGasAmount = null,
+        Cell $refundPayload = null,
+        BigInteger $refundForwardGasAmount = null,
+        BigInteger $forwardGasAmount = null,
+        $queryId = null
+    ): array
     {
+        $jetton = new Jetton($this->init);
+        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($contractAddress->toString(), $askJettonAddress->toString()), true)['address'];
+        if (Address::isValid($askJettonWalletAddress)) {
+            $askJettonWalletAddress = new Address($askJettonWalletAddress);
+        } else {
+            throw new \Exception("Invalid jetton wallet address");
+        }
 
+        $forwardPayload = $this->createSwapBody(
+            askJettonWalletAddress: $askJettonWalletAddress,
+            receiverAddress: $userWalletAddress,
+            refundAddress: $refundAddress,
+            minAskAmount: $minAskAmount,
+            excessesAddress: $excessAddress,
+            customPayload: $customPayload,
+            customPayloadForwardGasAmount: $customPayloadForwardGasAmount,
+            refundPayload: $refundPayload,
+            refundForwardGasAmount: $refundForwardGasAmount,
+            referralAddress: $referralAddress,
+            referralValue: $referralValue
+        );
+
+        $forwardTonAmount = $forwardGasAmount ?? (new TonToJettonGas())->forwardGasAmount;
+
+        return $proxyTon->getTonTransferTxParams(
+            contractAddress: $contractAddress,
+            tonAmount: $offerAmount,
+            destinationAddress: $contractAddress,
+            refundAddress: $userWalletAddress,
+            forwardPayload: $forwardPayload,
+            forwardTonAmount: $forwardTonAmount,
+            queryId: $queryId
+        );
     }
 
+    /**
+     * @throws \Brick\Math\Exception\DivisionByZeroException
+     * @throws \Brick\Math\Exception\NumberFormatException
+     * @throws \Olifanton\Interop\Boc\Exceptions\BitStringException
+     */
     public
     function createSwapBody(
         Address $askJettonWalletAddress,
@@ -130,45 +232,12 @@ class Swap
             ->writeAddress($referralAddress ?? null);
 
         $c
-            ->writeUint(DEX_OPCODES['SWAP'], 32)
+            ->writeUint(OpCodes::SWAP, 32)
             ->writeAddress($askJettonWalletAddress)
             ->writeAddress($refundAddress)
             ->writeAddress($excessesAddress ?? $refundAddress)
             ->writeRef($swapData->cell());
 
-        return $c->cell();
-    }
-
-    public function createJettonTransferMessage(
-        $queryId,
-        $amount,
-        Address $destination,
-        $forwardTonAmount,
-        Cell $forwardPayload = null,
-        Cell $customPayload = null,
-        Address $responseDestination = null
-    )
-    {
-        $c = new Builder();
-        $c
-            ->writeUint(0xf8a7ea5, 32)
-            ->writeUint($queryId, 64)
-            ->writeCoins($amount)
-            ->writeAddress($destination)
-            ->writeAddress($responseDestination ?? null);
-        if ($customPayload != null) {
-            $c->writeBit(true);
-            $c->writeRef($customPayload);
-        } else {
-            $c->writeBit(false);
-        }
-        $c->writeCoins($forwardTonAmount ?? 0);
-        if ($forwardPayload != null) {
-            $c->writeBit(true);
-            $c->writeRef($forwardPayload);
-        } else {
-            $c->writeBit(false);
-        }
         return $c->cell();
     }
 }

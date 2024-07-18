@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Ton\StonFi\dex\api\v1;
+namespace StonFi\dex\api\v1;
 
-use Ton\StonFi\Init;
+use StonFi\Init;
 
 class Jetton
 {

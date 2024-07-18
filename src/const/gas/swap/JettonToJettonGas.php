@@ -1,7 +1,7 @@
 <?php
-namespace Ton\StonFi\const\gas\swap;
+namespace StonFi\const\gas\swap;
 use Olifanton\Interop\Units;
-use Ton\StonFi\const\EstimateGas;
+use StonFi\const\EstimateGas;
 
 class JettonToJettonGas extends EstimateGas {
     public function __construct()
