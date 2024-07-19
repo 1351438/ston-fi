@@ -10,7 +10,7 @@ use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
 use StonFi\const\gas\transfer\TonTransferGas;
 use StonFi\const\OpCodes;
-use StonFi\dex\api\v1\Jetton;
+use StonFi\contracts\api\v1\Jetton;
 use StonFi\Init;
 
 class PtonV2

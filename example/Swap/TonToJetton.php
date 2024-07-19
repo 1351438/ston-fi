@@ -4,13 +4,14 @@
  * */
 
 use Olifanton\Interop\Address;
-use StonFi\dex\swap\v1\Swap;
+use StonFi\contracts\dex\v1\Swap;
 use StonFi\enums\Networks;
 use StonFi\Init;
 
 require_once __DIR__ . '/../common.php';
 
 global $pizzatonJettonMaster, $userWalletAddr, $init;
+echo "-------------------------------SWAP TON TO JETTON----------------------" . PHP_EOL;
 
 $swap = new Swap($init);
 
@@ -32,7 +33,6 @@ $proxyTon = new \StonFi\pTON\v1\PtonV1($init);
 
 /// Create transaction params for swap 0.1 TON with PTJ
 $transactionParams = $swap->TonToJettonTxParams(
-    contractAddress: $init->getRouter(),
     proxyTon: $proxyTon,
     userWalletAddress: new Address($userWalletAddr),
     askJettonAddress: new Address($pizzatonJettonMaster),

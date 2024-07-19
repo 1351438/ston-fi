@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace StonFi\dex\api\v1;
+namespace StonFi\contracts\api\v1;
 
 use StonFi\Enums\Methods;
 use StonFi\Init;

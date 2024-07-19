@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace StonFi\dex\swap\v2;
+namespace StonFi\contracts\dex\v2;
 
 use Brick\Math\BigInteger;
 use JetBrains\PhpStorm\ArrayShape;
@@ -13,23 +13,29 @@ use StonFi\const\gas\swap\JettonToJettonGas;
 use StonFi\const\gas\swap\JettonToTonGas;
 use StonFi\const\gas\swap\TonToJettonGas;
 use StonFi\const\OpCodes;
-use StonFi\dex\api\v1\Jetton;
-use StonFi\dex\common\CreateJettonTransferMessage;
+use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
 use StonFi\pTON\v2\PtonV2;
 
 class Swap
 {
     private Init $init;
+    private Address $routerAddress;
 
-    public function __construct(Init $init)
+    public function __construct(Init $init, $contractAddress = null)
     {
         $this->init = $init;
+        if ($contractAddress == null) {
+            $this->routerAddress = $init->getRouter();
+        } else {
+            $this->routerAddress = $contractAddress;
+        }
     }
 
     public function simulate($from, $to, $units, $slippageTolerance)
     {
-        $swap = new \StonFi\dex\api\v1\Swap($this->init);
+        $swap = new \StonFi\contracts\api\v1\Swap($this->init);
         return $swap->swapSimulate($from, $to, $units, $slippageTolerance);
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace StonFi\dex\common;
+namespace StonFi\contracts\common;
 
 use Brick\Math\BigInteger;
 use Olifanton\Interop\Address;

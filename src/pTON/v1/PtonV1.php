@@ -7,8 +7,8 @@ use JetBrains\PhpStorm\ArrayShape;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
-use StonFi\dex\api\v1\Jetton;
-use StonFi\dex\common\CreateJettonTransferMessage;
+use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
 
 class PtonV1

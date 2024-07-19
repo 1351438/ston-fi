@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace StonFi\dex\swap\v1;
+namespace StonFi\contracts\dex\v1;
 
 use Brick\Math\BigInteger;
 use JetBrains\PhpStorm\ArrayShape;
@@ -15,23 +15,29 @@ use StonFi\const\gas\swap\JettonToJettonGas;
 use StonFi\const\gas\swap\JettonToTonGas;
 use StonFi\const\gas\swap\TonToJettonGas;
 use StonFi\const\OpCodes;
-use StonFi\dex\api\v1\Jetton;
-use StonFi\dex\common\CreateJettonTransferMessage;
+use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
 use StonFi\pTON\v1\PtonV1;
 
 class Swap
 {
     private Init $init;
+    private Address $routerAddress;
 
-    public function __construct(Init $init)
+    public function __construct(Init $init, $contractAddress = null)
     {
         $this->init = $init;
+        if ($contractAddress == null) {
+            $this->routerAddress = $init->getRouter();
+        } else {
+            $this->routerAddress = $contractAddress;
+        }
     }
 
     public function simulate($from, $to, $units, $slippageTolerance): bool|string
     {
-        $swap = new \StonFi\dex\api\v1\Swap($this->init);
+        $swap = new \StonFi\contracts\api\v1\Swap($this->init);
         return $swap->swapSimulate($from, $to, $units, $slippageTolerance);
     }
 
@@ -47,7 +53,6 @@ class Swap
      */
     #[ArrayShape(["address" => "string", "payload" => "string", "amount" => "mixed"])]
     public function JettonToJettonTxParams(
-        Address $contractAddress,
         Address $userWalletAddress,
         Address $offerJettonAddress,
         Address $askJettonAddress,
@@ -61,7 +66,7 @@ class Swap
     {
         $jetton = new Jetton($this->init);
         $offerJettonWalletAddress = json_decode($jetton->jettonWalletAddress($userWalletAddress->toString(), $offerJettonAddress->toString()), true)['address'];
-        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($contractAddress->toString(), $askJettonAddress->toString()), true)['address'];
+        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString()), true)['address'];
         if (Address::isValid($offerJettonWalletAddress) && Address::isValid($askJettonWalletAddress)) {
             $offerJettonWalletAddress = new Address($offerJettonWalletAddress);
             $askJettonWalletAddress = new Address($askJettonWalletAddress);
@@ -79,7 +84,7 @@ class Swap
         $body = CreateJettonTransferMessage::create(
             queryId: $queryId,
             amount: $offerAmount,
-            destination: $contractAddress,
+            destination: $this->routerAddress,
             forwardTonAmount: $forwardTonAmount,
             forwardPayload: $forwardPayload,
             responseDestination: $userWalletAddress
@@ -96,7 +101,6 @@ class Swap
 
     public
     function JettonToTonTxParams(
-        Address    $contractAddress,
         PtonV1     $proxyTon,
         Address    $userWalletAddress,
         Address    $offerJettonAddress,
@@ -109,7 +113,6 @@ class Swap
     )
     {
         return $this->JettonToJettonTxParams(
-            contractAddress: $contractAddress,
             userWalletAddress: $userWalletAddress,
             offerJettonAddress: $offerJettonAddress,
             askJettonAddress: $proxyTon->address,
@@ -128,7 +131,6 @@ class Swap
      */
     #[ArrayShape(["address" => "string", "payload" => "string", "value" => "\Brick\Math\BigInteger"])] public
     function TonToJettonTxParams(
-        Address    $contractAddress,
         PtonV1     $proxyTon,
         Address    $userWalletAddress,
         Address    $askJettonAddress,
@@ -140,7 +142,7 @@ class Swap
     ): array
     {
         $jetton = new Jetton($this->init);
-        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($contractAddress->toString(), $askJettonAddress->toString()), true)['address'];
+        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString()), true)['address'];
         if (Address::isValid($askJettonWalletAddress)) {
             $askJettonWalletAddress = new Address($askJettonWalletAddress);
         } else {
@@ -157,9 +159,9 @@ class Swap
         $forwardTonAmount = $forwardGasAmount ?? (new TonToJettonGas())->forwardGasAmount;
 
         return $proxyTon->getTonTransferTxParams(
-            contractAddress: $contractAddress,
+            contractAddress: $this->routerAddress,
             tonAmount: $offerAmount,
-            destinationAddress: $contractAddress,
+            destinationAddress: $this->routerAddress,
             refundAddress: $userWalletAddress,
             forwardPayload: $forwardPayload,
             forwardTonAmount: $forwardTonAmount,
