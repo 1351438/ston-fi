@@ -9,9 +9,11 @@ use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
-use StonFi\const\gas\swap\JettonToJettonGas;
-use StonFi\const\gas\swap\JettonToTonGas;
-use StonFi\const\gas\swap\TonToJettonGas;
+use Olifanton\Ton\Connect\Request\Transaction;
+use StonFi\const\v1\gas\swap\JettonToJettonGas;
+use StonFi\const\v1\gas\swap\JettonToTonGas;
+use StonFi\const\v1\gas\swap\TonToJettonGas;
+use StonFi\const\v1\models\TransactionParams;
 use StonFi\const\OpCodes;
 use StonFi\contracts\api\v1\Jetton;
 use StonFi\contracts\common\CreateJettonTransferMessage;
@@ -62,7 +64,7 @@ class Swap
                 $gasAmount = null,
                 $forwardGasAmount = null,
                 $queryId = null
-    )
+    ): TransactionParams
     {
         $jetton = new Jetton($this->init);
         $offerJettonWalletAddress = json_decode($jetton->jettonWalletAddress($userWalletAddress->toString(), $offerJettonAddress->toString()), true)['address'];
@@ -99,11 +101,8 @@ class Swap
 
         $value = $gasAmount ?? (new JettonToJettonGas())->gasAmount;
 
-        return [
-            "address" => $offerJettonWalletAddress->toString(),
-            "payload" => Bytes::bytesToBase64($body->toBoc()),
-            "amount" => $value
-        ];
+
+        return new TransactionParams($offerJettonWalletAddress->toString(), Bytes::bytesToBase64($body->toBoc(false)), $value);
     }
 
     public

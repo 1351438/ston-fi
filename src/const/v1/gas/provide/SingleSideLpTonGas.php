@@ -1,6 +1,6 @@
 <?php
 
-namespace StonFi\const\gas\provide;
+namespace StonFi\const\v1\gas\provide;
 
 use Olifanton\Interop\Units;
 use StonFi\const\EstimateGas;

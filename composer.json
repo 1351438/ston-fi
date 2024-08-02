@@ -56,5 +56,8 @@
         {
             "name": "MBA"
         }
-    ]
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    }
 }

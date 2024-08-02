@@ -5,11 +5,14 @@ namespace StonFi\contracts\dex\v1;
 use Brick\Math\BigInteger;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
+use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
-use StonFi\const\gas\provide\LpJettonGas;
-use StonFi\const\gas\provide\LpTonGas;
+use StonFi\const\v1\gas\provide\LpJettonGas;
+use StonFi\const\v1\gas\provide\LpTonGas;
+use StonFi\const\v1\models\TransactionParams;
 use StonFi\const\OpCodes;
 use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CallContractMethods;
 use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
 use StonFi\pTON\v1\PtonV1;
@@ -18,8 +21,9 @@ class ProvideLiquidity
 {
     private Address $routerAddress;
     private Init $init;
+    private CallContractMethods $CallContractMethods;
 
-    public function __construct(Init $init, $contractAddress = null)
+    public function __construct(Init $init, $contractAddress = null, $CallContractMethods = null)
     {
         $this->init = $init;
         if ($contractAddress == null) {
@@ -27,6 +31,11 @@ class ProvideLiquidity
         } else {
             $this->routerAddress = $contractAddress;
         }
+
+        if (isset($CallContractMethods))
+            $this->CallContractMethods = $CallContractMethods;
+        else
+            $this->CallContractMethods = new CallContractMethods($this->init);
     }
 
     /**
@@ -44,17 +53,10 @@ class ProvideLiquidity
         BigInteger $gasAmount = null,
         BigInteger $forwardGasAmount = null,
                    $queryId = null
-    )
+    ): TransactionParams
     {
-        $jetton = new Jetton($this->init);
-        $jettonWalletAddress = json_decode($jetton->jettonWalletAddress($userWalletAddress->toString(), $sendTokenAddress->toString()), true)['address'];
-        $routerWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $otherTokenAddress->toString()), true)['address'];
-        if (Address::isValid($jettonWalletAddress) && Address::isValid($routerWalletAddress)) {
-            $jettonWalletAddress = new Address($jettonWalletAddress);
-            $routerWalletAddress = new Address($routerWalletAddress);
-        } else {
-            throw new \Exception("Invalid jetton wallet address");
-        }
+        $jettonWalletAddress = $this->CallContractMethods->getWalletAddress($userWalletAddress->toString(), $sendTokenAddress->toString());
+        $routerWalletAddress = $this->CallContractMethods->getWalletAddress($this->routerAddress->toString(), $otherTokenAddress->toString());
 
         $forwardPayload = $this->createProvideLiquidityBody(
             routerWalletAddress: $routerWalletAddress,
@@ -62,21 +64,19 @@ class ProvideLiquidity
         );
 
         $forwardTonAmount = $forwardGasAmount ?? (new LpJettonGas())->forwardGasAmount;
-        $amount = $gasAmount ?? (new LpJettonGas())->gasAmount;
+
         $body = CreateJettonTransferMessage::create(
-            $queryId ?? BigInteger::of(0),
-            $sendAmount,
-            $this->routerAddress,
-            $forwardTonAmount,
-            $forwardPayload,
+            queryId: $queryId ?? 0,
+            amount:$sendAmount,
+            destination: $this->routerAddress,
+            forwardTonAmount: $forwardTonAmount,
+            forwardPayload: $forwardPayload,
             responseDestination: $userWalletAddress
         );
 
-        return [
-            "address" => $jettonWalletAddress,
-            "payload" => Bytes::bytesToBase64($body->toBoc()),
-            "amount" => $amount
-        ];
+        $amount = $gasAmount ?? (new LpJettonGas())->gasAmount;
+
+        return new TransactionParams($jettonWalletAddress, Bytes::bytesToBase64($body->toBoc(false)), $amount);
     }
 
     /**
@@ -92,13 +92,7 @@ class ProvideLiquidity
                    $queryId = null
     )
     {
-        $jetton = new Jetton($this->init);
-        $routerWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $otherTokenAddress->toString()), true)['address'];
-        if (Address::isValid($routerWalletAddress)) {
-            $routerWalletAddress = new Address($routerWalletAddress);
-        } else {
-            throw new \Exception("Invalid jetton wallet address");
-        }
+        $routerWalletAddress = $this->CallContractMethods->getWalletAddress($this->routerAddress->toString(), $otherTokenAddress->toString());
 
         $forwardPayload = $this->createProvideLiquidityBody(
             routerWalletAddress: $routerWalletAddress,

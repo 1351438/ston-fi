@@ -1,5 +1,5 @@
 <?php
-namespace StonFi\const\gas\transfer;
+namespace StonFi\const\v1\gas\transfer;
 use Olifanton\Interop\Units;
 use StonFi\const\EstimateGas;
 

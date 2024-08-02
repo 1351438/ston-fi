@@ -17,25 +17,17 @@ class Init
 {
     private Networks $network;
     private Address $router;
-    private HttpMethodsClient $httpClient;
-    private ToncenterTransport $transport;
     private Address $tonAddress;
     private string $apiEndpoint;
-
 
     /**
      * @throws \Exception
      */
-    public function __construct(Networks $network, $toncenterApiKey = null)
+    public function __construct(Networks $network)
     {
         $this->network = $network;
         $this->tonAddress = new Address('EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c');
         $this->router = new Address($network == Networks::MAINNET ? 'EQB3ncyBUTjZUA5EnFKR5_EnOMI9V1tTEAAPaiU71gc4TiUt' : 'EQBsGx9ArADUrREB34W-ghgsCgBShvfUr4Jvlu-0KGc33Rbt');
-        if ($toncenterApiKey == null) {
-            throw new \Exception("Please justify your TonCenter api key, Request API key from https://t.me/tontestnetapibot or https://t.me/tonapibot");
-        } else {
-            $this->initHttpClient($toncenterApiKey);
-        }
         if ($network == Networks::MAINNET) {
             $this->apiEndpoint = "https://api.ston.fi";
         } else {
@@ -43,29 +35,22 @@ class Init
         }
     }
 
-    private function initHttpClient($toncenterApiKey): void
-    {
-        $httpClient = new HttpMethodsClient(
-            Psr18ClientDiscovery::find(),
-            Psr17FactoryDiscovery::findRequestFactory(),
-            Psr17FactoryDiscovery::findStreamFactory(),
-        );
 
-        $toncenter = new ToncenterHttpV2Client(
-            $httpClient,
-            new ClientOptions(
-                $this->network == Networks::MAINNET ? "https://toncenter.com/api/v2" : "https://testnet.toncenter.com/api/v2",
-                $toncenterApiKey,
-            ),
-        );
-        $this->transport = new ToncenterTransport($toncenter);
-        $this->httpClient = $httpClient;
-    }
-
+    /**
+     * @throws \Exception
+     */
     public function endpoint($action, Methods $method = Methods::GET, $params = [], $headers = [])
     {
+        return $this->apiRequest($this->apiEndpoint . $action, $method, $params, $headers);
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function apiRequest($url, Methods $method = Methods::GET, $params = [], $headers = [])
+    {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->apiEndpoint . $action);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         if ($method == Methods::POST) {
 
@@ -76,17 +61,10 @@ class Init
         $server_output = curl_exec($ch);
         curl_close($ch);
         if (!is_array(json_decode($server_output, true)))
-            var_dump("Error: " . $server_output);
+            throw new \Exception("Error: " . $server_output);
         return ($server_output);
     }
 
-    /**
-     * @return mixed
-     */
-    public function getHttpClient()
-    {
-        return $this->httpClient;
-    }
 
     /**
      * @return Networks

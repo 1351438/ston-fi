@@ -8,7 +8,8 @@ use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
-use StonFi\const\gas\transfer\TonTransferGas;
+use StonFi\const\v1\gas\transfer\TonTransferGas;
+use StonFi\const\v1\models\TransactionParams;
 use StonFi\const\OpCodes;
 use StonFi\contracts\api\v1\Jetton;
 use StonFi\Init;
@@ -56,14 +57,14 @@ class PtonV2
      * @throws \Olifanton\Interop\Boc\Exceptions\BitStringException
      */
     #[ArrayShape(["address" => "string", "payload" => "string", "value" => "\Brick\Math\BigInteger"])] public function getTonTransferTxParams(
-        Address $contractAddress,
+        Address    $contractAddress,
         BigInteger $tonAmount,
-        Address $destinationAddress,
-        Address $refundAddress,
-        Cell $forwardPayload = null,
+        Address    $destinationAddress,
+        Address    $refundAddress,
+        Cell       $forwardPayload = null,
         BigInteger $forwardTonAmount = null,
-        $queryId = null,
-    ): array
+                   $queryId = null,
+    ): TransactionParams
     {
         $jetton = new Jetton($this->init);
         $to = json_decode($jetton->jettonWalletAddress($contractAddress->toString(), $destinationAddress->toString()), true)['address'];
@@ -82,10 +83,6 @@ class PtonV2
 
         $value = BigInteger::sum($tonAmount, ($forwardTonAmount ?? BigInteger::of(0)), (new TonTransferGas())->gasAmount);
 
-        return [
-            "address" => $to->toString(),
-            "payload" => Bytes::bytesToBase64($body->toBoc()),
-            "value" => $value
-        ];
+        return new TransactionParams($to, Bytes::bytesToBase64($body->toBoc(false)), $value);
     }
 }

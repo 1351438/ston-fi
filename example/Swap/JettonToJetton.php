@@ -11,7 +11,7 @@ use StonFi\Init;
 
 require_once __DIR__ . '/../common.php';
 
-global $pizzatonJettonMaster, $usdtJettonMaster, $notJettonMaster, $userWalletAddr;
+global $usdtJettonMaster, $notJettonMaster, $userWalletAddr;
 echo "-------------------------------SWAP JETTON TO JETTON----------------------" . PHP_EOL;
 
 $init = new Init(Networks::MAINNET, "123");
@@ -20,10 +20,10 @@ $swap = new Swap($init);
 // Simulate the swap first
 $simulate = json_decode(
     $swap->simulate(
-        from: $pizzatonJettonMaster,
+        from: $usdtJettonMaster,
         to: $notJettonMaster,
         units: \Olifanton\Interop\Units::toNano('1', 6), // 1 USDT -> ? NOT this must be nano and (depends on currency decimals)
-        slippageTolerance: '0.001' // this means 1 percent
+        slippageTolerance: '0.090' // this means 1 percent
     ),
     true);
 echo "Swap Simulate: " . PHP_EOL;

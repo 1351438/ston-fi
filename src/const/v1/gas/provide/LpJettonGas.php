@@ -1,9 +1,9 @@
 <?php
-namespace StonFi\const\gas\swap;
+namespace StonFi\const\v1\gas\provide;
 use Olifanton\Interop\Units;
 use StonFi\const\EstimateGas;
 
-class JettonToTonGas extends EstimateGas {
+class LpJettonGas extends EstimateGas {
     public function __construct()
     {
         parent::__construct(Units::toNano("0.3"), Units::toNano('0.24'));

@@ -11,11 +11,14 @@ use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
 use Olifanton\Interop\Bytes;
-use StonFi\const\gas\swap\JettonToJettonGas;
-use StonFi\const\gas\swap\JettonToTonGas;
-use StonFi\const\gas\swap\TonToJettonGas;
+use Olifanton\Ton\Connect\Request\Transaction;
+use StonFi\const\v1\gas\swap\JettonToJettonGas;
+use StonFi\const\v1\gas\swap\JettonToTonGas;
+use StonFi\const\v1\gas\swap\TonToJettonGas;
+use StonFi\const\v1\models\TransactionParams;
 use StonFi\const\OpCodes;
 use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CallContractMethods;
 use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
 use StonFi\pTON\v1\PtonV1;
@@ -24,8 +27,17 @@ class Swap
 {
     private Init $init;
     private Address $routerAddress;
+    private CallContractMethods $CallContractMethod;
 
-    public function __construct(Init $init, $contractAddress = null)
+    /**
+     * @return mixed|Address
+     */
+    public function getRouterAddress(): mixed
+    {
+        return $this->routerAddress;
+    }
+
+    public function __construct(Init $init, $contractAddress = null, $callContractMethod = null)
     {
         $this->init = $init;
         if ($contractAddress == null) {
@@ -33,6 +45,11 @@ class Swap
         } else {
             $this->routerAddress = $contractAddress;
         }
+
+        if ($callContractMethod)
+            $this->CallContractMethod = $callContractMethod;
+        else
+            $this->CallContractMethod = new CallContractMethods($this->init);
     }
 
     public function simulate($from, $to, $units, $slippageTolerance): bool|string
@@ -50,28 +67,27 @@ class Swap
      * BigInteger $minAskAmount the minimum asked of second currency
      * @throws CellException
      * @throws BitStringException
+     * @throws \Olifanton\Interop\Boc\Exceptions\SliceException
      */
-    #[ArrayShape(["address" => "string", "payload" => "string", "amount" => "mixed"])]
     public function JettonToJettonTxParams(
-        Address $userWalletAddress,
-        Address $offerJettonAddress,
-        Address $askJettonAddress,
-                $offerAmount,
-                $minAskAmount,
-        Address $referralAddress = null,
-                $gasAmount = null,
-                $forwardGasAmount = null,
-                $queryId = null
-    ): array
+        Address    $userWalletAddress,
+        Address    $offerJettonAddress,
+        Address    $askJettonAddress,
+        BigInteger $offerAmount,
+        BigInteger $minAskAmount,
+        Address    $referralAddress = null,
+        BigInteger $gasAmount = null,
+        BigInteger $forwardGasAmount = null,
+                   $queryId = null
+    ): TransactionParams
     {
-        $jetton = new Jetton($this->init);
-        $offerJettonWalletAddress = json_decode($jetton->jettonWalletAddress($userWalletAddress->toString(), $offerJettonAddress->toString()), true)['address'];
-        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString()), true)['address'];
-        if (Address::isValid($offerJettonWalletAddress) && Address::isValid($askJettonWalletAddress)) {
-            $offerJettonWalletAddress = new Address($offerJettonWalletAddress);
-            $askJettonWalletAddress = new Address($askJettonWalletAddress);
-        } else {
-            throw new \Exception("Invalid jetton wallet address");
+        try {
+
+            $offerJettonWalletAddress = $this->CallContractMethod->getWalletAddress($userWalletAddress->toString(), $offerJettonAddress->toString());
+            $askJettonWalletAddress = $this->CallContractMethod->getWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString());
+
+        } catch (\Exception $e) {
+            throw $e;
         }
         $forwardTonAmount = ($forwardGasAmount ?? (new JettonToJettonGas())->forwardGasAmount);
         $forwardPayload = $this->createSwapBody(
@@ -82,7 +98,7 @@ class Swap
         );
 
         $body = CreateJettonTransferMessage::create(
-            queryId: $queryId,
+            queryId: $queryId ?? 0,
             amount: $offerAmount,
             destination: $this->routerAddress,
             forwardTonAmount: $forwardTonAmount,
@@ -92,15 +108,10 @@ class Swap
 
         $value = $gasAmount ?? (new JettonToJettonGas())->gasAmount;
 
-        return [
-            "address" => $offerJettonWalletAddress->toString(),
-            "payload" => Bytes::bytesToBase64($body->toBoc()),
-            "amount" => $value
-        ];
+        return new TransactionParams($offerJettonWalletAddress, Bytes::bytesToBase64($body->toBoc(false)), $value);
     }
 
-    public
-    function JettonToTonTxParams(
+    public function JettonToTonTxParams(
         PtonV1     $proxyTon,
         Address    $userWalletAddress,
         Address    $offerJettonAddress,
@@ -129,8 +140,7 @@ class Swap
      * @throws BitStringException
      * @throws \Exception
      */
-    #[ArrayShape(["address" => "string", "payload" => "string", "value" => "\Brick\Math\BigInteger"])] public
-    function TonToJettonTxParams(
+    public function TonToJettonTxParams(
         PtonV1     $proxyTon,
         Address    $userWalletAddress,
         Address    $askJettonAddress,
@@ -139,15 +149,10 @@ class Swap
         Address    $referralAddress = null,
         BigInteger $forwardGasAmount = null,
                    $queryId = null
-    ): array
+    ): TransactionParams
     {
-        $jetton = new Jetton($this->init);
-        $askJettonWalletAddress = json_decode($jetton->jettonWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString()), true)['address'];
-        if (Address::isValid($askJettonWalletAddress)) {
-            $askJettonWalletAddress = new Address($askJettonWalletAddress);
-        } else {
-            throw new \Exception("Invalid jetton wallet address");
-        }
+        $askJettonWalletAddress = $this->CallContractMethod->getWalletAddress($this->routerAddress->toString(), $askJettonAddress->toString());
+
 
         $forwardPayload = $this->createSwapBody(
             userWalletAddress: $userWalletAddress,
@@ -181,7 +186,6 @@ class Swap
     ): Cell
     {
         $c = new Builder();
-
         $c
             ->writeUint(OpCodes::SWAP, 32)
             ->writeAddress($askJettonWalletAddress)

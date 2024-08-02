@@ -8,27 +8,29 @@ use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 
-class CreateJettonTransferMessage {
+class CreateJettonTransferMessage
+{
     /**
      * @throws BitStringException
      */
     static public function create(
-        $queryId = null,
-        $amount,
+        $queryId,
+        BigInteger $amount,
         Address $destination,
         $forwardTonAmount,
         Cell $forwardPayload = null,
         Cell $customPayload = null,
-        Address $responseDestination = null
+        ?Address $responseDestination = null
     ): Cell
     {
         $c = new Builder();
         $c
             ->writeUint(0xf8a7ea5, 32)
-            ->writeUint($queryId ?? BigInteger::of(0), 64)
+            ->writeUint($queryId ?? 0, 64)
             ->writeCoins($amount)
             ->writeAddress($destination)
-            ->writeAddress($responseDestination ?? null);
+            ->writeAddress($responseDestination);
+
         if ($customPayload != null) {
             $c->writeBit(true);
             $c->writeRef($customPayload);
