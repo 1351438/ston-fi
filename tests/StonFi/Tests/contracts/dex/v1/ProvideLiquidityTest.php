@@ -16,6 +16,7 @@ use StonFi\contracts\dex\v1\ProvideLiquidity;
 use PHPUnit\Framework\TestCase;
 use StonFi\enums\Networks;
 use StonFi\Init;
+use StonFi\pTON\v1\PtonV1;
 
 
 const OFFER_JETTON_ADDRESS = "EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO"; // STON
@@ -116,6 +117,122 @@ class ProvideLiquidityTest extends TestCase
         );
         $this->assertEquals(
             BigInteger::of(300000000),
+            $result->value
+        );
+
+        // TEST 3 - should build expected tx params when queryId is defined
+        $result = $this->provideLiquidity->JettonTxParams(
+            userWalletAddress: $userWalletAddress,
+            sendTokenAddress: $sendTokenAddress,
+            otherTokenAddress: $otherTokenAddress,
+            sendAmount: $sendAmount,
+            minLpOut: $minLpOut,
+            gasAmount: BigInteger::of("1"),
+            forwardGasAmount: BigInteger::of("2"),
+        );
+
+        $this->assertEquals(
+            "EQBB_eiDQ9YJ_7UiNsrVvhTKt2O0oKjKe76eVQ7QPS-oYPsi",
+            $result->address->toString(true, true, true),
+        );
+        $this->assertEquals(
+            "te6cckEBAgEAgQABqg+KfqUAAAAAAAAAAEHc1lAIAO87mQKicbKgHIk4pSPP4k5xhHqutqYgAB7USnesDnCdAAQnxLqlX2B6w4jQzzzPWA8eyWZVZBz6Y0D/8noARLOaAgUBAE38+eWPgAEAzmDZI8Xr3NC7nZo+aFkM7M/0vb5/f2/1dAy3bDlFogPlXGF2",
+            $result->payload,
+        );
+        $this->assertEquals(
+            BigInteger::of(1),
+            $result->value
+        );
+    }
+
+    public function testTonTxParams()
+    {
+        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
+        $otherTokenAddress = new Address(ASK_JETTON_ADDRESS);
+        $proxyTon = new PtonV1($this->init);
+        $sendAmount = BigInteger::of("500000000");
+        $minLpOut = BigInteger::of("1");
+
+        $mock = $this->createMock(CallContractMethods::class);
+        $mock->expects($this->any())
+            ->method("getWalletAddress")
+            ->willReturnCallback(function ($arg0, $arg1) {
+                if ((new Address($arg1))->isEqual((new PtonV1($this->init))->address))
+                    return Cell::oneFromBoc("te6ccsEBAQEAJAAAAEOAAioWoxZMTVqjEz8xEP8QSW4AyorIq+/8UCfgJNM0gMPwJB4oTQ==", true)->beginParse()->loadAddress();
+                if ((new Address($arg1))->isEqual(new Address(ASK_JETTON_ADDRESS))) {
+                    return Cell::oneFromBoc("te6ccsEBAQEAJAAAAEOAAQDOYNkjxevc0Ludmj5oWQzsz/S9vn9/b/V0DLdsOUWw40LsPA==", true)->beginParse()->loadAddress();
+                }
+            });
+
+        $this->provideLiquidity = new ProvideLiquidity($this->init, CallContractMethods: $mock);
+
+        // TEST 1 - should build expected tx params
+        $result = $this->provideLiquidity->TonTxParams(
+            userWalletAddress: $userWalletAddress,
+            proxyTon: $proxyTon,
+            otherTokenAddress: $otherTokenAddress,
+            sendAmount: $sendAmount,
+            minLpOut: $minLpOut,
+        );
+
+        $this->assertEquals(
+            $result->address->isEqual(new Address("EQARULUYsmJq1RiZ-YiH-IJLcAZUVkVff-KBPwEmmaQGH6aC")),
+            true
+        );
+        $this->assertEquals(
+            "te6cckEBAgEAYwABbQ+KfqUAAAAAAAAAAEHc1lAIAO87mQKicbKgHIk4pSPP4k5xhHqutqYgAB7USnesDnCcED39JAMBAE38+eWPgAEAzmDZI8Xr3NC7nZo+aFkM7M/0vb5/f2/1dAy3bDlFogPLyEMA",
+            $result->payload
+        );
+        $this->assertEquals(
+            BigInteger::of("760000000"),
+            $result->value
+        );
+
+
+        // TEST 2 - should build expected tx params when queryId is defined
+        $result = $this->provideLiquidity->TonTxParams(
+            userWalletAddress: $userWalletAddress,
+            proxyTon: $proxyTon,
+            otherTokenAddress: $otherTokenAddress,
+            sendAmount: $sendAmount,
+            minLpOut: $minLpOut,
+            queryId: 12345
+        );
+
+        $this->assertEquals(
+            $result->address->isEqual(new Address("EQARULUYsmJq1RiZ-YiH-IJLcAZUVkVff-KBPwEmmaQGH6aC")),
+            true
+        );
+        $this->assertEquals(
+            "te6cckEBAgEAYwABbQ+KfqUAAAAAAAAwOUHc1lAIAO87mQKicbKgHIk4pSPP4k5xhHqutqYgAB7USnesDnCcED39JAMBAE38+eWPgAEAzmDZI8Xr3NC7nZo+aFkM7M/0vb5/f2/1dAy3bDlFogOsHyfF",
+            $result->payload
+        );
+        $this->assertEquals(
+            BigInteger::of("760000000"),
+            $result->value
+        );
+
+
+        // TEST 3 - should build expected tx params when custom gasAmount is defined
+        $result = $this->provideLiquidity->TonTxParams(
+            userWalletAddress: $userWalletAddress,
+            proxyTon: $proxyTon,
+            otherTokenAddress: $otherTokenAddress,
+            sendAmount: $sendAmount,
+            minLpOut: $minLpOut,
+            forwardGasAmount: BigInteger::of(2)
+        );
+
+        $this->assertEquals(
+            $result->address->isEqual(new Address("EQARULUYsmJq1RiZ-YiH-IJLcAZUVkVff-KBPwEmmaQGH6aC")),
+            true
+        );
+        $this->assertEquals(
+            "te6cckEBAgEAYAABZw+KfqUAAAAAAAAAAEHc1lAIAO87mQKicbKgHIk4pSPP4k5xhHqutqYgAB7USnesDnCcBAsBAE38+eWPgAEAzmDZI8Xr3NC7nZo+aFkM7M/0vb5/f2/1dAy3bDlFogMUO5pP",
+            $result->payload
+        );
+        $this->assertEquals(
+            BigInteger::of("500000002"),
             $result->value
         );
     }

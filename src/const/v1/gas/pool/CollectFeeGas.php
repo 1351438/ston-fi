@@ -9,6 +9,6 @@ class CollectFeeGas extends EstimateGas
 {
     public function __construct()
     {
-        parent::__construct(Units::toNano("1.1"), null);
+        parent::__construct(Units::toNano("1.1"), Units::toNano(0));
     }
 }

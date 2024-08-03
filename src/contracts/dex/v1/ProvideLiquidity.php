@@ -107,7 +107,8 @@ class ProvideLiquidity
             $this->routerAddress,
             $userWalletAddress,
             $forwardPayload,
-            $forwardTonAmount
+            $forwardTonAmount,
+            $queryId
         );
     }
 
