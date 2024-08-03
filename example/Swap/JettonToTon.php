@@ -25,7 +25,7 @@ $simulate = json_decode(
         slippageTolerance: '0.001' // this means 1 percent
     ),
     true);
-echo "Swap Simulate: " . PHP_EOL;
+echo "SwapV2 Simulate: " . PHP_EOL;
 echo json_encode($simulate, 128);
 echo PHP_EOL . PHP_EOL;
 // Then if every thing seems fine and simulation didn't fail we are free to make swap

@@ -56,7 +56,7 @@ class CallContractMethods
                 throw new \Exception("Invalid jetton wallet address");
             }
         } else {
-            throw new Exception("Error binding jetton wallet address");
+            throw new Exception("Error binding jetton wallet address: ". json_encode($result));
         }
     }
 
@@ -76,5 +76,14 @@ class CallContractMethods
             }
         }
         return $args;
+    }
+
+    public function readWalletAddressFromCell($hex): Address
+    {
+        return new Address(Cell::oneFromBoc($hex)->beginParse()->loadAddress());
+    }
+    public function readWalletAddressFromStack($item): Address
+    {
+        return $this->readWalletAddressFromCell($item[$item['type']]);
     }
 }

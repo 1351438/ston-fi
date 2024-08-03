@@ -89,4 +89,12 @@ class Init
     {
         return $this->tonAddress;
     }
+
+    /**
+     * @param Address $router
+     */
+    public function setRouter(Address $router): void
+    {
+        $this->router = $router;
+    }
 }

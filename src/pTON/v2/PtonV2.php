@@ -12,16 +12,24 @@ use StonFi\const\v1\gas\transfer\TonTransferGas;
 use StonFi\const\v1\models\TransactionParams;
 use StonFi\const\OpCodes;
 use StonFi\contracts\api\v1\Jetton;
+use StonFi\contracts\common\CallContractMethods;
 use StonFi\Init;
+use StonFi\pTON\pTON;
 
-class PtonV2
+class PtonV2 extends pTON
 {
     private Init $init;
     public Address $address;
+    public CallContractMethods $provider;
 
 
-    public function __construct($init, $address)
+    public function __construct($init, $address, CallContractMethods $provider = null)
     {
+        if ($provider != null)
+            $this->provider = $provider;
+        else
+            $this->provider = new CallContractMethods($init);
+
         $this->init = $init;
         $this->address = new Address(
             $address,
@@ -56,7 +64,7 @@ class PtonV2
     /**
      * @throws \Olifanton\Interop\Boc\Exceptions\BitStringException
      */
-    #[ArrayShape(["address" => "string", "payload" => "string", "value" => "\Brick\Math\BigInteger"])] public function getTonTransferTxParams(
+    public function getTonTransferTxParams(
         Address    $contractAddress,
         BigInteger $tonAmount,
         Address    $destinationAddress,
@@ -66,13 +74,8 @@ class PtonV2
                    $queryId = null,
     ): TransactionParams
     {
-        $jetton = new Jetton($this->init);
-        $to = json_decode($jetton->jettonWalletAddress($contractAddress->toString(), $destinationAddress->toString()), true)['address'];
-        if (Address::isValid($to)) {
-            $to = new Address($to);
-        } else {
-            throw new \Exception("Couldn't generate address");
-        }
+        $to = $this->provider->getWalletAddress($contractAddress->toString(), $destinationAddress->toString());
+
 
         $body = $this->createTonTransferBody(
             tonAmount: $tonAmount,
