@@ -16,9 +16,11 @@ use StonFi\const\v2\gas\pool\BurnGas;
 use StonFi\const\v2\gas\pool\CollectFeeGas;
 use StonFi\const\v2\models\TransactionParams;
 use StonFi\contracts\common\CallContractMethods;
+use StonFi\contracts\dex\v1\LpAccount;
 use StonFi\Init;
 
-class PoolV2 {
+class PoolV2
+{
     public Address $routerAddress;
     public Address $poolAddress;
     public CallContractMethods $provider;
@@ -101,14 +103,12 @@ class PoolV2 {
     }
 
 
-
-
     /**
      * @throws BitStringException
      */
     public function createBurnBody(
         BigInteger $amount,
-        Cell    $customPayload,
+        Cell       $customPayload,
                    $queryId = null
     ): Cell
     {
@@ -129,7 +129,7 @@ class PoolV2 {
 
         BigInteger $amount,
         Address    $userWalletAddress,
-        Cell $customPayload = null,
+        Cell       $customPayload = null,
         BigInteger $gasAmount = null,
                    $queryId = null
     ): TransactionParams
@@ -148,7 +148,8 @@ class PoolV2 {
      * @throws \Exception
      */
     public function getLpAccountAddress(string $ownerAddress): Address
-    {;
+    {
+        ;
         $ownerAddress = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($ownerAddress))->cell()->toBoc(false));
         $result = json_decode($this->provider->call($this->poolAddress, 'get_lp_account_address', [
             $ownerAddress,
@@ -163,13 +164,19 @@ class PoolV2 {
         }
     }
 
+    public function getLpAccount($ownerAddress) {
+        return new LpAccount($this->init, $this->getLpAccountAddress($ownerAddress));
+    }
 
+    public function getPoolData() {
+        return $this->implGetPoolData();
+    }
     /**
      * @throws CellException
      * @throws SliceException
      * @throws \Exception
      */
-    public function getPoolData(): PoolData
+    protected  function implGetPoolData(): PoolData
     {
         if ($this->poolAddress == null)
             throw  new \Exception("Pool address is required.");
@@ -185,8 +192,8 @@ class PoolV2 {
             $totalSupplyLp = BigInteger::of(hexdec($stacks[2][$stacks[2]['type']]));
             $reserve0 = BigInteger::of(hexdec($stacks[3][$stacks[3]['type']]));
             $reserve1 = BigInteger::of(hexdec($stacks[4][$stacks[4]['type']]));
-            $token0WalletAddress = $this->readWalletAddress($stacks[5]);
-            $token1WalletAddress = $this->readWalletAddress($stacks[6]);
+            $token0WalletAddress = $this->provider->readWalletAddressFromStack($stacks[5]);
+            $token1WalletAddress = $this->provider->readWalletAddressFromStack($stacks[6]);
             $lpFee = BigInteger::of(hexdec($stacks[7][$stacks[7]['type']]));
             $protocolFee = BigInteger::of(hexdec($stacks[8][$stacks[8]['type']]));
             $protocolFeeAddress = $this->provider->readWalletAddressFromStack($stacks[9]);
