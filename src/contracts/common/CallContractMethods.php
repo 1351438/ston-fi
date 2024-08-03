@@ -12,18 +12,22 @@ use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\Interop\Bytes;
 use StonFi\enums\Networks;
 use StonFi\Init;
-use function PHPUnit\Framework\isNull;
 
 class CallContractMethods
 {
-    public $url;
+    public string $url;
 
-    public function __construct(public readonly Init $init)
+    public function __construct(public readonly Init $init, $network = null)
     {
-        $this->url = $this->init->getNetwork() == Networks::MAINNET ? "https://tonapi.io/" : "https://testnet.tonapi.io/";
+        $network = $network ?? $this->init->getNetwork();
+        $this->url = $network == Networks::MAINNET ? "https://tonapi.io/" : "https://testnet.tonapi.io/";
     }
 
-    public function call($contractAddress, $method, $inputs = [])
+
+    /**
+     * @throws Exception
+     */
+    public function runMethod($contractAddress, $method, $inputs = []): bool|string
     {
         $link = $this->url . "v2/blockchain/accounts/$contractAddress/methods/$method" . $this->convertArguments($inputs);
         return $this->init->apiRequest($link);
@@ -38,8 +42,8 @@ class CallContractMethods
      */
     public function getWalletAddress(string $userAddress, string $jettonAddress)
     {
-        $result = ($this->call($jettonAddress, "get_wallet_address", [
-            Bytes::bytesToHexString((new Builder())->writeAddress(new Address($userAddress))->cell()->toBoc(false))
+        $result = ($this->runMethod($jettonAddress, "get_wallet_address", [
+            Bytes::bytesToBase64((new Builder())->writeAddress(new Address($userAddress))->cell()->toBoc(false))
         ]));
 
         $result = json_decode($result, true);
@@ -56,11 +60,11 @@ class CallContractMethods
                 throw new \Exception("Invalid jetton wallet address");
             }
         } else {
-            throw new Exception("Error binding jetton wallet address: ". json_encode($result));
+            throw new Exception("Error binding jetton wallet address: " . json_encode($result));
         }
     }
 
-    private function convertArguments($inputs)
+    private function convertArguments($inputs): string
     {
 
         $args = '';
@@ -76,14 +80,5 @@ class CallContractMethods
             }
         }
         return $args;
-    }
-
-    public function readWalletAddressFromCell($hex): Address
-    {
-        return new Address(Cell::oneFromBoc($hex)->beginParse()->loadAddress());
-    }
-    public function readWalletAddressFromStack($item): Address
-    {
-        return $this->readWalletAddressFromCell($item[$item['type']]);
     }
 }

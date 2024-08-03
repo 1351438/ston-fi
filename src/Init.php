@@ -97,4 +97,9 @@ class Init
     {
         $this->router = $router;
     }
+
+    public function setNetwork(Networks $network)
+    {
+        $this->network = $network;
+    }
 }

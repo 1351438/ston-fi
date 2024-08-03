@@ -9,7 +9,7 @@ class  PoolData
 {
     public function __construct(
         public readonly bool       $isLocked,
-        public readonly Address    $routerAddress,
+        public readonly Address   $routerAddress,
         public readonly BigInteger $totalSupplyLP,
         public readonly BigInteger $reserve0,
         public readonly BigInteger $reserve1,
@@ -17,7 +17,7 @@ class  PoolData
         public readonly Address    $token1WalletAddress,
         public readonly BigInteger $lpFee,
         public readonly BigInteger $protocolFee,
-        public readonly Address    $protocolFeeAddress,
+        public readonly Address|null    $protocolFeeAddress,
         public readonly BigInteger $collectedToken0ProtocolFee,
         public readonly BigInteger $collectedToken1ProtocolFee,
     )

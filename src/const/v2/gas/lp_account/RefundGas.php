@@ -10,6 +10,6 @@ class RefundGas extends EstimateGas
 {
     public function __construct()
     {
-        parent::__construct(Units::toNano("0.3"), Units::toNano(0));
+        parent::__construct(Units::toNano("0.8"), Units::toNano(0));
     }
 }

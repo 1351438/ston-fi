@@ -7,6 +7,7 @@ use Brick\Math\Exception\DivisionByZeroException;
 use Brick\Math\Exception\NumberFormatException;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
+use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
 use Olifanton\Interop\Boc\Exceptions\SliceException;
@@ -55,14 +56,14 @@ class VaultV2
         $contractAddress = (new Address($this->routerAddress))->toString(false, true);
         $token0 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($user))->cell()->toBoc(false));
         $token1 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($tokenWallet))->cell()->toBoc(false));
-        $result = json_decode($this->provider->call($contractAddress, 'get_vault_address', [
+        $result = json_decode($this->provider->runMethod($contractAddress, 'get_vault_address', [
             $token1,
             $token0,
         ]), true);
         if ($result['success']) {
             $stack = $result['stack'];
             $item = $stack[0];
-            return $this->provider->readWalletAddressFromStack($item);
+            return $this->readWalletAddress($item);
         } else {
             throw new \Exception("Contract getter failed. \n " . json_encode($result));
         }
@@ -93,20 +94,30 @@ class VaultV2
         if ($this->routerAddress == null)
             throw  new \Exception("Router address is required.");
 
-        $result = json_decode($this->provider->call($this->routerAddress, "get_router_data"), true);
+        $result = json_decode($this->provider->runMethod($this->routerAddress, "get_router_data"), true);
 
         if ($result['success']) {
             $stacks = $result['stack'];
             if (count($stacks) != 4)
                 throw new \Exception("Stack under/overflow");
-            $ownerAddress = $this->provider->readWalletAddressFromStack($stacks[0]);
-            $tokenAddress = $this->provider->readWalletAddressFromStack($stacks[1]);
-            $routerAddress = $this->provider->readWalletAddressFromStack($stacks[2]);
+            $ownerAddress = $this->readWalletAddress($stacks[0]);
+            $tokenAddress = $this->readWalletAddress($stacks[1]);
+            $routerAddress = $this->readWalletAddress($stacks[2]);
             $depositedAmount = BigInteger::of(hexdec($stacks[3][$stacks[3]['type']]));
 
             return new VaultData($ownerAddress, $tokenAddress, $routerAddress, $depositedAmount);
         } else {
             throw new \Exception("Contract getter failed.");
         }
+    }
+
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
+    public function readWalletAddress($item): Address
+    {
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 }

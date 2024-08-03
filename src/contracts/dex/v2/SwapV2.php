@@ -9,6 +9,7 @@ use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
+use Olifanton\Interop\Boc\Exceptions\CellException;
 use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\Interop\Bytes;
 use Olifanton\Ton\Connect\Request\Transaction;
@@ -288,5 +289,15 @@ class SwapV2
             ->writeAddress($refundAddress)
             ->writeAddress($excessAddress ?? $refundAddress)
             ->writeRef($payload)->cell();
+    }
+
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
+    public function readWalletAddress($item): Address
+    {
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 }

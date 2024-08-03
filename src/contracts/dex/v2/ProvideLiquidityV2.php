@@ -322,4 +322,14 @@ class ProvideLiquidityV2
             queryId: $queryId
         );
     }
+
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
+    public function readWalletAddress($item): Address
+    {
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
+    }
 }

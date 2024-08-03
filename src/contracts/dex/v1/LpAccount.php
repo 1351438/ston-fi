@@ -117,7 +117,7 @@ class LpAccount
         if ($this->lpAccountAddress == null)
             throw  new \Exception("LP Account address is required.");
 
-        $result = json_decode($this->callContractMethods->call($this->lpAccountAddress, "get_lp_account_data"), true);
+        $result = json_decode($this->callContractMethods->runMethod($this->lpAccountAddress, "get_lp_account_data"), true);
 
         if ($result['success']) {
             $stacks = $result['stack'];
@@ -142,6 +142,6 @@ class LpAccount
 
     public function readWalletAddress($item): Address
     {
-        return new Address(Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 }

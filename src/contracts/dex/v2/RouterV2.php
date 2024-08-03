@@ -5,6 +5,8 @@ namespace StonFi\contracts\dex\v2;
 use Brick\Math\BigInteger;
 use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Cell;
+use Olifanton\Interop\Boc\Exceptions\CellException;
+use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\Interop\Boc\SnakeString;
 use StonFi\const\v1\models\PoolData;
 use StonFi\const\v2\models\RouterData;
@@ -38,7 +40,7 @@ class RouterV2
         if ($this->routerAddress == null)
             throw  new \Exception("Router address is required.");
 
-        $result = json_decode($this->provider->call($this->routerAddress, "get_router_data"), true);
+        $result = json_decode($this->provider->runMethod($this->routerAddress, "get_router_data"), true);
 
         if ($result['success']) {
             $stacks = $result['stack'];
@@ -60,7 +62,7 @@ class RouterV2
         if ($this->routerAddress == null)
             throw  new \Exception("Router address is required.");
 
-        $result = json_decode($this->provider->call($this->routerAddress, "get_router_data"), true);
+        $result = json_decode($this->provider->runMethod($this->routerAddress, "get_router_data"), true);
 
         if ($result['success']) {
             $stacks = $result['stack'];
@@ -69,7 +71,7 @@ class RouterV2
             $routerId = BigInteger::of(hexdec($stacks[0][$stacks[0]['type']]));
             $dexType = SnakeString::parse(($stacks[1][$stacks[1]['type']]));
             $isLocked = hexdec($stacks[2][$stacks[2]['type']]) == 1;
-            $adminAddress = $this->provider->readWalletAddressFromStack($stacks[3]);
+            $adminAddress = $this->readWalletAddress($stacks[3]);
             $tempUpgrade = Cell::oneFromBoc($stacks[4][$stacks[4]['type']]);
             $poolCode = Cell::oneFromBoc($stacks[5][$stacks[5]['type']]);
             $jettonLpWalletCode = Cell::oneFromBoc($stacks[6][$stacks[6]['type']]);
@@ -80,5 +82,15 @@ class RouterV2
         } else {
             throw new \Exception("Contract getter failed.");
         }
+    }
+
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
+    public function readWalletAddress($item): Address
+    {
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 }

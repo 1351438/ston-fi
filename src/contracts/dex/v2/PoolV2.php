@@ -9,6 +9,7 @@ use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
 use Olifanton\Interop\Boc\Exceptions\CellException;
 use Olifanton\Interop\Boc\Exceptions\SliceException;
+use Olifanton\Interop\Boc\SnakeString;
 use Olifanton\Interop\Bytes;
 use StonFi\const\OpCodes;
 use StonFi\const\v2\models\PoolData;
@@ -25,12 +26,12 @@ class PoolV2
     public Address $poolAddress;
     public CallContractMethods $provider;
 
-    public function __construct(public readonly Init $init, $poolAddress = null, $provider = null)
+    public function __construct(public readonly Init $init, $poolAddress = null, CallContractMethods $provider = null)
     {
         $this->poolAddress = $poolAddress;
         $this->routerAddress = $this->init->getRouter();
 
-        if (isset($CallContractMethods))
+        if ($provider != null)
             $this->provider = $provider;
         else
             $this->provider = new CallContractMethods($this->init);
@@ -56,14 +57,14 @@ class PoolV2
         $contractAddress = (new Address($this->routerAddress))->toString(false, true);
         $token0 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($token0))->cell()->toBoc(false));
         $token1 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($token1))->cell()->toBoc(false));
-        $result = json_decode($this->provider->call($contractAddress, 'get_pool_address', [
+        $result = json_decode($this->provider->runMethod($contractAddress, 'get_pool_address', [
             $token1,
             $token0,
         ]), true);
         if ($result['success']) {
             $stack = $result['stack'];
             $item = $stack[0];
-            return $this->provider->readWalletAddressFromStack($item);
+            return $this->readWalletAddress($item);
         } else {
             throw new \Exception("Contract getter failed. \n " . json_encode($result));
         }
@@ -108,7 +109,7 @@ class PoolV2
      */
     public function createBurnBody(
         BigInteger $amount,
-        Cell       $customPayload,
+        Cell       $customPayload = null,
                    $queryId = null
     ): Cell
     {
@@ -124,6 +125,7 @@ class PoolV2
     /**
      * @throws CellException
      * @throws BitStringException
+     * @throws SliceException
      */
     public function getBurnTxParams(
 
@@ -134,7 +136,7 @@ class PoolV2
                    $queryId = null
     ): TransactionParams
     {
-        $to = $this->provider->getWalletAddress($this->poolAddress, $userWalletAddress->toString());
+        $to = $this->provider->getWalletAddress($this->poolAddress->toString(), $userWalletAddress->toString());
 
         $body = $this->createBurnBody($amount, $customPayload, $queryId);
         $value = $gasAmount ?? (new BurnGas())->gasAmount;
@@ -147,56 +149,82 @@ class PoolV2
      * @throws BitStringException
      * @throws \Exception
      */
-    public function getLpAccountAddress(string $ownerAddress): Address
+    public function getLpAccountAddress(string $ownerAddress): Address|null
     {
-        ;
         $ownerAddress = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($ownerAddress))->cell()->toBoc(false));
-        $result = json_decode($this->provider->call($this->poolAddress, 'get_lp_account_address', [
+        $result = json_decode($this->provider->runMethod($this->poolAddress, 'get_lp_account_address', [
             $ownerAddress,
         ]), true);
 
         if ($result['success']) {
             $stack = $result['stack'];
             $item = $stack[0];
-            return $this->provider->readWalletAddressFromStack($item);
+            return $this->readWalletAddress($item);
         } else {
             throw new \Exception("Contract getter failed. \n " . json_encode($result));
         }
     }
 
-    public function getLpAccount($ownerAddress) {
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     * @throws BitStringException
+     */
+    public function getJettonWallet(Address $ownerAddress): Address|null
+    {
+        return $this->provider->getWalletAddress($ownerAddress->toString(true,true,true), $this->poolAddress->toString(true,true,true));
+    }
+
+    public function getLpAccount($ownerAddress)
+    {
         return new LpAccount($this->init, $this->getLpAccountAddress($ownerAddress));
     }
 
-    public function getPoolData() {
+    public function getPoolData()
+    {
         return $this->implGetPoolData();
     }
+
+    public function getPoolType()
+    {
+        $pool_data = json_decode($this->provider->runMethod($this->poolAddress, "get_pool_type"), true);
+
+        if ($pool_data['success']) {
+            $stacks = $pool_data['stack'];
+            return SnakeString::parse(Cell::oneFromBoc($stacks[0]['cell']));
+        } else {
+            throw new \Exception("Contract getter failed. \n " . json_encode($pool_data));
+        }
+    }
+
     /**
      * @throws CellException
      * @throws SliceException
      * @throws \Exception
      */
-    protected  function implGetPoolData(): PoolData
+    protected function implGetPoolData(): PoolData
     {
         if ($this->poolAddress == null)
             throw  new \Exception("Pool address is required.");
 
-        $pool_data = json_decode($this->CallContractMethods->call($this->poolAddress, "get_pool_data"), true);
+        $pool_data = json_decode($this->provider->runMethod($this->poolAddress, "get_pool_data"), true);
 
         if ($pool_data['success']) {
             $stacks = $pool_data['stack'];
-            if (count($stacks) != 10)
+            if (count($stacks) != 12)
                 throw new \Exception("Stack under/overflow");
+
             $isLocked = hexdec($stacks[0][$stacks[0]['type']]) == 1;
-            $routerWalletAddress = $this->provider->readWalletAddressFromStack($stacks[1]);
+            $routerWalletAddress = $this->readWalletAddress($stacks[1]);
             $totalSupplyLp = BigInteger::of(hexdec($stacks[2][$stacks[2]['type']]));
             $reserve0 = BigInteger::of(hexdec($stacks[3][$stacks[3]['type']]));
             $reserve1 = BigInteger::of(hexdec($stacks[4][$stacks[4]['type']]));
-            $token0WalletAddress = $this->provider->readWalletAddressFromStack($stacks[5]);
-            $token1WalletAddress = $this->provider->readWalletAddressFromStack($stacks[6]);
+            $token0WalletAddress = $this->readWalletAddress($stacks[5]);
+            $token1WalletAddress = $this->readWalletAddress($stacks[6]);
             $lpFee = BigInteger::of(hexdec($stacks[7][$stacks[7]['type']]));
             $protocolFee = BigInteger::of(hexdec($stacks[8][$stacks[8]['type']]));
-            $protocolFeeAddress = $this->provider->readWalletAddressFromStack($stacks[9]);
+            $protocolFeeAddress = $this->readWalletAddress($stacks[9]);
             $collectedToken0ProtocolFee = BigInteger::of(hexdec($stacks[10][$stacks[10]['type']]));
             $collectedToken1ProtocolFee = BigInteger::of(hexdec($stacks[11][$stacks[11]['type']]));
 
@@ -220,4 +248,13 @@ class PoolV2
         }
     }
 
+
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
+    public function readWalletAddress($item): Address|null
+    {
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
+    }
 }

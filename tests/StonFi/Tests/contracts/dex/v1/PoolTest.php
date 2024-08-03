@@ -205,7 +205,7 @@ class PoolTest extends TestCase
     {
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
-            ->method("call")
+            ->method("runMethod")
             ->willReturnCallback(function ($contractAddress, $method, $arg2) {
                 return json_encode([
                     'success' => true,
@@ -253,7 +253,7 @@ class PoolTest extends TestCase
 
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
-            ->method("call")
+            ->method("runMethod")
             ->willReturnCallback(function ($contractAddress, $method, $arg2) {
                 return json_encode([
                     'success' => true,
@@ -280,7 +280,7 @@ class PoolTest extends TestCase
     {
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
-            ->method("call")
+            ->method("runMethod")
             ->willReturnCallback(function ($contractAddress, $method, $arg2) {
                 return json_encode([
                     'success' => true,
@@ -313,7 +313,7 @@ class PoolTest extends TestCase
         $ownerAddress = new Address("UQAQnxLqlX2B6w4jQzzzPWA8eyWZVZBz6Y0D_8noARLOaEAn");
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
-            ->method("call")
+            ->method("runMethod")
             ->willReturnCallback(function ($contractAddress, $method, $arg2) {
                 return json_encode([
                     'success' => true,
@@ -340,7 +340,7 @@ class PoolTest extends TestCase
     {
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
-            ->method("call")
+            ->method("runMethod")
             ->willReturnCallback(function ($contractAddress, $method, $arg2) {
                 return json_encode([
                     'success' => true,

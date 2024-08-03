@@ -24,7 +24,7 @@ const ROUTER_ADDRESS = "kQCas2p939ESyXM_BzFJzcIe3GD5S0tbjJDj6EBVn-SPsEkN";
 const OFFER_JETTON_ADDRESS = "kQDLvsZol3juZyOAVG8tWsJntOxeEZWEaWCbbSjYakQpuYN5"; // TestRED
 const ASK_JETTON_ADDRESS = "kQB_TOJSB7q3-Jm1O8s0jKFtqLElZDPjATs5uJGsujcjznq3"; // TestBLUE
 
-class SwapTest extends TestCase
+class SwapV2Test extends TestCase
 {
     private Init $init;
     private SwapV2 $swap;

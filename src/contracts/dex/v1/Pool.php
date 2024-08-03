@@ -132,7 +132,7 @@ class Pool
     {
         ;
         $jettonWallet = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($jettonWallet))->cell()->toBoc(false));
-        $result = json_decode($this->CallContractMethods->call($this->poolAddress, "get_expected_outputs", [
+        $result = json_decode($this->CallContractMethods->runMethod($this->poolAddress, "get_expected_outputs", [
             $jettonWallet,
             $amount->__toString(),
         ]), true);
@@ -156,7 +156,7 @@ class Pool
      */
     public function getExpectedTokens(BigInteger $amount0, BigInteger $amount1)
     {
-        $result = json_decode($this->CallContractMethods->call($this->poolAddress, "get_expected_tokens", [
+        $result = json_decode($this->CallContractMethods->runMethod($this->poolAddress, "get_expected_tokens", [
             $amount1,
             $amount0,
         ]), true);
@@ -176,7 +176,7 @@ class Pool
      */
     public function getExpectedLiquidity(BigInteger $jettonAmount): PoolExpectedAmount
     {
-        $result = json_decode($this->CallContractMethods->call($this->poolAddress, "get_expected_liquidity", [
+        $result = json_decode($this->CallContractMethods->runMethod($this->poolAddress, "get_expected_liquidity", [
             $jettonAmount
         ]), true);
         if ($result['success']) {
@@ -200,7 +200,7 @@ class Pool
         if ($this->poolAddress == null)
             throw  new \Exception("Pool address is required.");
 
-        $pool_data = json_decode($this->CallContractMethods->call($this->poolAddress, "get_pool_data"), true);
+        $pool_data = json_decode($this->CallContractMethods->runMethod($this->poolAddress, "get_pool_data"), true);
 
         if ($pool_data['success']) {
             $stacks = $pool_data['stack'];
@@ -245,7 +245,7 @@ class Pool
         $contractAddress = (new Address($this->routerAddress))->toString(false, true);
         $token0 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($token0))->cell()->toBoc(false));
         $token1 = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($token1))->cell()->toBoc(false));
-        $result = json_decode($this->CallContractMethods->call($contractAddress, 'get_pool_address', [
+        $result = json_decode($this->CallContractMethods->runMethod($contractAddress, 'get_pool_address', [
             $token1,
             $token0,
         ]), true);
@@ -265,7 +265,7 @@ class Pool
      */
     public function readWalletAddress($item): Address
     {
-        return new Address(Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 
 
@@ -293,7 +293,7 @@ class Pool
     {
         $contractAddress = (new Address($this->poolAddress))->toString(false, true);
         $ownerAddress = Bytes::bytesToHexString((new Builder())->writeAddress(new Address($ownerAddress))->cell()->toBoc(false));
-        $result = json_decode($this->CallContractMethods->call($contractAddress, 'get_lp_account_address', [
+        $result = json_decode($this->CallContractMethods->runMethod($contractAddress, 'get_lp_account_address', [
             $ownerAddress,
         ]), true);
 

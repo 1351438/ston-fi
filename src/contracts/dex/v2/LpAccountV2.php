@@ -7,6 +7,8 @@ use Olifanton\Interop\Address;
 use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Boc\Exceptions\BitStringException;
+use Olifanton\Interop\Boc\Exceptions\CellException;
+use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\Interop\Bytes;
 use StonFi\const\OpCodes;
 use StonFi\const\v2\gas\lp_account\DirectAddLpGas;
@@ -20,19 +22,19 @@ use StonFi\Init;
 class LpAccountV2
 {
     public Init $init;
-    private CallContractMethods $callContractMethods;
+    private CallContractMethods $provider;
 
     protected Address $lpAccountAddress;
 
-    public function __construct(Init $init, Address $lpAccountAddress, CallContractMethods $CallContractMethods = null)
+    public function __construct(Init $init, Address $lpAccountAddress, CallContractMethods $provider = null)
     {
         $this->init = $init;
         $this->lpAccountAddress = $lpAccountAddress;
 
-        if ($CallContractMethods == null)
-            $this->callContractMethods = new CallContractMethods($init);
+        if ($provider == null)
+            $this->provider = new CallContractMethods($init);
         else
-            $this->callContractMethods = $CallContractMethods;
+            $this->provider = $provider;
     }
 
     public function createRefundBody($leftMaybePayload = null, $rightMaybePayload = null, $queryId = null): Cell
@@ -149,7 +151,7 @@ class LpAccountV2
         if ($this->lpAccountAddress == null)
             throw  new \Exception("LP Account address is required.");
 
-        $result = json_decode($this->callContractMethods->call($this->lpAccountAddress, "get_lp_account_data"), true);
+        $result = json_decode($this->provider->runMethod($this->lpAccountAddress, "get_lp_account_data"), true);
 
         if ($result['success']) {
             $stacks = $result['stack'];
@@ -171,9 +173,12 @@ class LpAccountV2
         }
     }
 
-
+    /**
+     * @throws CellException
+     * @throws SliceException
+     */
     public function readWalletAddress($item): Address
     {
-        return new Address(Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
+        return (Cell::oneFromBoc($item[$item['type']])->beginParse()->loadAddress());
     }
 }
