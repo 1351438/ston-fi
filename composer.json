@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "name": "mba/ston_fi",
+    "name": "mbadev/ston_fi",
     "description": "PHP Ston fi swap",
     "homepage": "https://github.com/1351438/ston-fi",
     "type": "library",

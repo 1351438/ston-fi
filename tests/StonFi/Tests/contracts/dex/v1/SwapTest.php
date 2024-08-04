@@ -219,14 +219,6 @@ class SwapTest extends TestCase
 
     public function testJettonToTonTxParams()
     {
-        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
-        $offerJettonAddress = new Address(OFFER_JETTON_ADDRESS);
-        $proxyTon = new PtonV1($this->init);
-        $offerAmount = BigInteger::of("500000000");
-        $askAmount = BigInteger::of("200000000");
-        $referralAddress = new Address(USER_WALLET_ADDRESS);
-        $queryId = 12345;
-
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
             ->method("getWalletAddress")
@@ -239,6 +231,14 @@ class SwapTest extends TestCase
                     return Cell::oneFromBoc("te6ccsEBAQEAJAAAAEOAAioWoxZMTVqjEz8xEP8QSW4AyorIq+/8UCfgJNM0gMPwJB4oTQ==", true)->beginParse()->loadAddress();
             });
 
+
+        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
+        $offerJettonAddress = new Address(OFFER_JETTON_ADDRESS);
+        $proxyTon = new PtonV1($this->init, provider: $mock);
+        $offerAmount = BigInteger::of("500000000");
+        $askAmount = BigInteger::of("200000000");
+        $referralAddress = new Address(USER_WALLET_ADDRESS);
+        $queryId = 12345;
 
         $this->swap = new Swap($this->init, callContractMethod: $mock);
 
@@ -350,13 +350,6 @@ class SwapTest extends TestCase
 
     public function testTonToJettonTxParams()
     {
-        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
-        $askJettonAddress = new Address(ASK_JETTON_ADDRESS);
-        $proxyTon = new PtonV1($this->init);
-        $offerAmount = BigInteger::of("500000000");
-        $askAmount = BigInteger::of("200000000");
-        $referralAddress = new Address(USER_WALLET_ADDRESS);
-        $queryId = 12345;
 
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
@@ -369,6 +362,15 @@ class SwapTest extends TestCase
                 if (new Address($arg1) == (new PtonV1($this->init))->address)
                     return Cell::oneFromBoc("te6ccsEBAQEAJAAAAEOAAioWoxZMTVqjEz8xEP8QSW4AyorIq+/8UCfgJNM0gMPwJB4oTQ==", true)->beginParse()->loadAddress();
             });
+
+        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
+        $askJettonAddress = new Address(ASK_JETTON_ADDRESS);
+        $proxyTon = new PtonV1($this->init, provider: $mock);
+        $offerAmount = BigInteger::of("500000000");
+        $askAmount = BigInteger::of("200000000");
+        $referralAddress = new Address(USER_WALLET_ADDRESS);
+        $queryId = 12345;
+
 
 
         $this->swap = new Swap($this->init, callContractMethod: $mock);

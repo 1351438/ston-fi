@@ -147,12 +147,6 @@ class ProvideLiquidityTest extends TestCase
 
     public function testTonTxParams()
     {
-        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
-        $otherTokenAddress = new Address(ASK_JETTON_ADDRESS);
-        $proxyTon = new PtonV1($this->init);
-        $sendAmount = BigInteger::of("500000000");
-        $minLpOut = BigInteger::of("1");
-
         $mock = $this->createMock(CallContractMethods::class);
         $mock->expects($this->any())
             ->method("getWalletAddress")
@@ -163,6 +157,13 @@ class ProvideLiquidityTest extends TestCase
                     return Cell::oneFromBoc("te6ccsEBAQEAJAAAAEOAAQDOYNkjxevc0Ludmj5oWQzsz/S9vn9/b/V0DLdsOUWw40LsPA==", true)->beginParse()->loadAddress();
                 }
             });
+
+        $userWalletAddress = new Address(USER_WALLET_ADDRESS);
+        $otherTokenAddress = new Address(ASK_JETTON_ADDRESS);
+        $proxyTon = new PtonV1($this->init,provider:  $mock);
+        $sendAmount = BigInteger::of("500000000");
+        $minLpOut = BigInteger::of("1");
+
 
         $this->provideLiquidity = new ProvideLiquidity($this->init, CallContractMethods: $mock);
 

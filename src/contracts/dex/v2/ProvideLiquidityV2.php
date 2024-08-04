@@ -11,7 +11,7 @@ use Olifanton\Interop\Boc\Exceptions\CellException;
 use Olifanton\Interop\Boc\Exceptions\SliceException;
 use Olifanton\Interop\Bytes;
 use StonFi\const\OpCodes;
-use StonFi\const\v1\models\TransactionParams;
+use StonFi\const\v2\models\TransactionParams;
 use StonFi\const\v2\gas\provide\LpJettonGas;
 use StonFi\const\v2\gas\provide\LpTonGas;
 use StonFi\const\v2\gas\provide\SingleSideLpJettonGas;
@@ -119,23 +119,22 @@ class ProvideLiquidityV2
         Address    $excessesAddress = null,
         Cell       $customPayload = null,
         BigInteger $customPayloadForwardGasAmount = null,
-        BigInteger $gasAmount = null,
         BigInteger $forwardGasAmount = null,
         bool       $bothPositive = null,
                    $queryId = null,
     )
     {
-        $routerWalletAddress = $this->provider->getWalletAddress($this->routerAddress, $otherTokenAddress);
+        $routerWalletAddress = $this->provider->getWalletAddress($this->routerAddress->toString(), $otherTokenAddress->toString());
 
         $forwardPayload = $this->createProvideLiquidityBody(
-            $routerWalletAddress,
-            $minLpOut,
-            $userWalletAddress,
-            $refundAddress ?? $userWalletAddress,
-            $bothPositive,
-            $excessesAddress,
-            $customPayload,
-            $customPayloadForwardGasAmount
+            routerWalletAddress: $routerWalletAddress,
+            minLpOut: $minLpOut,
+            receiverAddress: $userWalletAddress,
+            refundAddress: $refundAddress ?? $userWalletAddress,
+            bothPositive: $bothPositive,
+            excessesAddress: $excessesAddress,
+            customPayload: $customPayload,
+            customPayloadForwardGasAmount: $customPayloadForwardGasAmount
         );
 
         $forwardTonAmount = $forwardGasAmount;
@@ -151,6 +150,11 @@ class ProvideLiquidityV2
         );
     }
 
+    /**
+     * @throws CellException
+     * @throws SliceException
+     * @throws BitStringException
+     */
     protected function implGetProvideLiquidityJettonTxParams(
         Address    $userWalletAddress,
         Address    $sendTokenAddress,
@@ -167,18 +171,20 @@ class ProvideLiquidityV2
         bool       $bothPositive = null
     ): TransactionParams
     {
-        $jettonWalletAddress = $this->provider->getWalletAddress($userWalletAddress, $sendTokenAddress);
-        $routerWalletAddress = $this->provider->getWalletAddress($this->routerAddress, $otherTokenAddress);
+        $contractAddress = $this->routerAddress;
+
+        $jettonWalletAddress = $this->provider->getWalletAddress($userWalletAddress->toString(), $sendTokenAddress->toString());
+        $routerWalletAddress = $this->provider->getWalletAddress($contractAddress->toString(), $otherTokenAddress->toString());
 
         $forwardPayload = $this->createProvideLiquidityBody(
-            $routerWalletAddress,
-            $minLpOut,
-            $userWalletAddress,
-            $refundAddress ?? $userWalletAddress,
-            $bothPositive,
-            $excessesAddress,
-            $customPayload,
-            $customPayloadForwardGasAmount
+            routerWalletAddress: $routerWalletAddress,
+            minLpOut: $minLpOut,
+            receiverAddress: $userWalletAddress,
+            refundAddress: $refundAddress ?? $userWalletAddress,
+            bothPositive: $bothPositive,
+            excessesAddress: $excessesAddress,
+            customPayload: $customPayload,
+            customPayloadForwardGasAmount: $customPayloadForwardGasAmount
         );
 
         $forwardTonAmount = $forwardGasAmount;
@@ -186,7 +192,7 @@ class ProvideLiquidityV2
         $body = CreateJettonTransferMessage::create(
             queryId: $queryId ?? 0,
             amount: $sendAmount,
-            destination: $this->routerAddress,
+            destination: $contractAddress,
             forwardTonAmount: $forwardTonAmount,
             forwardPayload: $forwardPayload,
             responseDestination: $userWalletAddress
@@ -197,6 +203,11 @@ class ProvideLiquidityV2
         return new TransactionParams($jettonWalletAddress, Bytes::bytesToBase64($body->toBoc(false)), $value);
     }
 
+    /**
+     * @throws CellException
+     * @throws SliceException
+     * @throws BitStringException
+     */
     public function getProvideLiquidityJettonTxParams(
         Address    $userWalletAddress,
         Address    $sendTokenAddress,
@@ -210,18 +221,18 @@ class ProvideLiquidityV2
         BigInteger $gasAmount = null,
         BigInteger $forwardGasAmount = null,
                    $queryId = null
-    )
+    ): TransactionParams
     {
         return $this->implGetProvideLiquidityJettonTxParams(
-            $userWalletAddress,
-            $sendTokenAddress,
-            $otherTokenAddress,
-            $sendAmount,
-            $minLpOut,
-            $refundAddress,
-            $excessesAddress,
-            $customPayload,
-            $customPayloadForwardGasAmount,
+            userWalletAddress: $userWalletAddress,
+            sendTokenAddress: $sendTokenAddress,
+            otherTokenAddress: $otherTokenAddress,
+            sendAmount: $sendAmount,
+            minLpOut: $minLpOut,
+            refundAddress: $refundAddress,
+            excessesAddress: $excessesAddress,
+            customPayload: $customPayload,
+            customPayloadForwardGasAmount: $customPayloadForwardGasAmount,
             gasAmount: $gasAmount ?? (new LpJettonGas())->gasAmount,
             forwardGasAmount: $forwardGasAmount ?? (new LpJettonGas())->forwardGasAmount,
             queryId: $queryId,
@@ -270,7 +281,6 @@ class ProvideLiquidityV2
         Address    $refundAddress = null,
         Address    $excessesAddress = null,
         Cell       $customPayload = null,
-        bool       $bootPositive = null,
         BigInteger $customPayloadForwardGasAmount = null,
         BigInteger $forwardGasAmount = null,
                    $queryId = null

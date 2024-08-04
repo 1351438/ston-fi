@@ -54,7 +54,7 @@ class SwapV2Test extends TestCase
     {
         $this->init = new Init(Networks::MAINNET);
         $this->init->setRouter(new Address(ROUTER_ADDRESS));
-        $this->proxyTon = new PtonV1($this->init, ('kQAcOvXSnnOhCdLYc6up2ECYwtNNTzlmOlidBeCs5cFPV7AM'));
+        $this->proxyTon = new PtonV1($this->init, new Address('kQAcOvXSnnOhCdLYc6up2ECYwtNNTzlmOlidBeCs5cFPV7AM'));
 
         $this->swap = new SwapV2($this->init);
 
@@ -375,7 +375,7 @@ class SwapV2Test extends TestCase
 
         $this->swap = new SwapV2($this->init, provider: $this->generateProviderMock());
 
-        $this->proxyTon = new PtonV1($this->init, ('kQAcOvXSnnOhCdLYc6up2ECYwtNNTzlmOlidBeCs5cFPV7AM'), $this->generateProviderMock());
+        $this->proxyTon = new PtonV1($this->init, new Address('kQAcOvXSnnOhCdLYc6up2ECYwtNNTzlmOlidBeCs5cFPV7AM'), $this->generateProviderMock());
 
         // TEST 1
         $res = $this->swap->TonToJettonTxParams(

@@ -40,7 +40,7 @@ class CallContractMethods
      * @throws BitStringException
      * @throws Exception
      */
-    public function getWalletAddress(string $userAddress, string $jettonAddress)
+    public function getWalletAddress(string $userAddress, string $jettonAddress): ?Address
     {
         $result = ($this->runMethod($jettonAddress, "get_wallet_address", [
             Bytes::bytesToBase64((new Builder())->writeAddress(new Address($userAddress))->cell()->toBoc(false))

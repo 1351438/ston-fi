@@ -22,7 +22,7 @@ class PtonV1 extends pTON
     public Address $address;
     public CallContractMethods $provider;
 
-    public function __construct($init, $address = null, CallContractMethods $provider = null)
+    public function __construct($init, Address $address = null, CallContractMethods $provider = null)
     {
         if ($provider != null)
             $this->provider = $provider;
