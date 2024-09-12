@@ -4,13 +4,13 @@ namespace StonFi\pTON\v1;
 
 use Brick\Math\BigInteger;
 use Brick\Math\Exception\MathException;
-use Grpc\Call;
-use JetBrains\PhpStorm\ArrayShape;
 use Olifanton\Interop\Address;
+use Olifanton\Interop\Boc\Builder;
 use Olifanton\Interop\Boc\Cell;
 use Olifanton\Interop\Bytes;
+use StonFi\const\OpCodes;
+use StonFi\const\v1\gas\pTon\DeployWalletGas;
 use StonFi\const\v1\models\TransactionParams;
-use StonFi\contracts\api\v1\Jetton;
 use StonFi\contracts\common\CallContractMethods;
 use StonFi\contracts\common\CreateJettonTransferMessage;
 use StonFi\Init;
@@ -30,9 +30,9 @@ class PtonV1 extends pTON
             $this->provider = new CallContractMethods($init);
 
         $this->init = $init;
-        $this->address = new Address(
+        $this->address = !is_string($address) ? new Address(
             $address ?? "EQCM3B12QK1e4yZSf8GtBRT0aLMNyEsBc_DhVfRRtOEffLez",
-        );
+        ) : $address;
     }
 
     /**
@@ -40,7 +40,6 @@ class PtonV1 extends pTON
      * @throws MathException
      */
     public function getTonTransferTxParams(
-        Address    $contractAddress,
         BigInteger $tonAmount,
         Address    $destinationAddress,
         Address    $refundAddress,
@@ -61,6 +60,32 @@ class PtonV1 extends pTON
         );
 
         $value = BigInteger::sum($tonAmount, ($forwardTonAmount ?? BigInteger::of(0)));
+
+        return new TransactionParams($to, Bytes::bytesToBase64($body->toBoc(false)), $value);
+    }
+
+
+    public function createDeployWalletBody(
+        Address $ownerAddress,
+                $queryId = null
+    )
+    {
+        return (new Builder())
+            ->writeUint(OpCodes::DEPLOY_WALLET_V1, 32)
+            ->writeUint($queryId ?? 0, 64)
+            ->writeAddress($ownerAddress)
+            ->cell();
+    }
+
+    public function getDeployWalletTxParams(
+        Address    $ownerAddress,
+        BigInteger $gasAmount = null,
+                   $queryId = null,
+    )
+    {
+        $to = $this->address;
+        $body = $this->createDeployWalletBody($ownerAddress, $queryId);
+        $value = $gasAmount ?? (new DeployWalletGas())->gasAmount;
 
         return new TransactionParams($to, Bytes::bytesToBase64($body->toBoc(false)), $value);
     }

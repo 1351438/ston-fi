@@ -17,4 +17,6 @@ class OpCodes
 
     // PTon
     const TON_TRANSFER = 0x01f3835d;
+    const DEPLOY_WALLET_V1 = 0x6cc43573;
+    const DEPLOY_WALLET_V2 = 0x4f5f4313;
 }
